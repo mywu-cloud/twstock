@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quant-Lab｜大盤K線與籌碼</title>
+<meta name="description" content="上市加權指數、上櫃櫃買指數 K 線圖與每日三大法人買賣超、融資融券資料，每日自動更新。">
+<meta name="theme-color" content="#0f1419">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f1419'/%3E%3Crect x='7' y='10' width='4' height='14' fill='%23e5484d'/%3E%3Crect x='14' y='6' width='4' height='12' fill='%2330a46c'/%3E%3Crect x='21' y='12' width='4' height='14' fill='%23e5484d'/%3E%3C/svg%3E">
+<script>
+  // 先決定主題，避免閃爍
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('ql-theme'); } catch (e) {}
+    if (!t) t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-in">
+    <a class="brand" href="./">
+      <span class="logo" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>Quant-Lab</span>
+    </a>
+    <nav class="mkt-tabs" role="tablist" aria-label="市場">
+      <button role="tab" data-market="twse" aria-selected="true">上市<small>加權指數</small></button>
+      <button role="tab" data-market="tpex" aria-selected="false">上櫃<small>櫃買指數</small></button>
+    </nav>
+    <button id="themeBtn" class="icon-btn" title="切換深色／淺色" aria-label="切換深色／淺色">
+      <svg class="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      <svg class="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- 行情摘要 -->
+  <section class="quote" id="quote" aria-live="polite">
+    <div class="q-main">
+      <div class="q-name"><span id="qName">加權指數</span><span class="q-date" id="qDate">—</span></div>
+      <div class="q-price"><span id="qClose">—</span><span id="qChg" class="q-chg">—</span></div>
+    </div>
+    <dl class="q-stats">
+      <div><dt>開盤</dt><dd id="qO">—</dd></div>
+      <div><dt>最高</dt><dd id="qH">—</dd></div>
+      <div><dt>最低</dt><dd id="qL">—</dd></div>
+      <div><dt>成交(億)</dt><dd id="qAmt">—</dd></div>
+      <div><dt>法人合計(億)</dt><dd id="qInst">—</dd></div>
+      <div><dt>融資增減(億)</dt><dd id="qMg">—</dd></div>
+    </dl>
+  </section>
+
+  <!-- K 線圖 -->
+  <section class="card chart-card">
+    <div class="toolbar">
+      <div class="seg" id="periodSeg" role="tablist" aria-label="K線週期">
+        <button data-p="D" class="on">日K</button>
+        <button data-p="W">週K</button>
+        <button data-p="M">月K</button>
+        <button data-p="H">半年K</button>
+        <button data-p="Y">年K</button>
+      </div>
+      <div class="seg seg-sm" id="subSeg" aria-label="副圖">
+        <button data-s="amt" class="on">成交金額</button>
+        <button data-s="inst">三大法人</button>
+        <button data-s="margin">融資餘額</button>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div id="chartMain" class="chart-main"></div>
+    <div class="legend legend-sub" id="legendSub"></div>
+    <div id="chartSub" class="chart-sub"></div>
+  </section>
+
+  <!-- 資料表 -->
+  <section class="card table-card">
+    <form class="filters" id="filters">
+      <label class="f-item">期間
+        <span class="range">
+          <input type="date" id="dFrom" aria-label="起始日"><span>~</span><input type="date" id="dTo" aria-label="結束日">
+        </span>
+      </label>
+      <div class="quick" id="quick">
+        <button type="button" data-q="3m">3月</button>
+        <button type="button" data-q="1y" class="on">1年</button>
+        <button type="button" data-q="3y">3年</button>
+        <button type="button" data-q="all">全部</button>
+      </div>
+      <button type="submit" class="btn-primary">查詢</button>
+      <button type="button" id="csvBtn" class="btn-ghost" title="匯出 CSV">匯出 CSV</button>
+    </form>
+
+    <div class="colseg" id="colSeg" aria-label="欄位群組">
+      <button data-g="px" class="on">價量</button>
+      <button data-g="inst">法人</button>
+      <button data-g="mg">信用</button>
+      <button data-g="all">全部</button>
+    </div>
+
+    <div class="tbl-wrap" id="tblWrap">
+      <table class="gtbl g-px" id="tbl">
+        <thead>
+          <tr>
+            <th rowspan="2" class="sticky c-date">交易<br>日期</th>
+            <th rowspan="2" class="px">開盤</th>
+            <th rowspan="2" class="px">最高</th>
+            <th rowspan="2" class="px">最低</th>
+            <th rowspan="2" class="px">收盤</th>
+            <th rowspan="2" class="px">漲跌</th>
+            <th rowspan="2" class="px">漲跌<br>(%)</th>
+            <th rowspan="2" class="px">振幅<br>(%)</th>
+            <th rowspan="2" class="px">成交<br>(億元)</th>
+            <th rowspan="2" class="px">成交<br>均張</th>
+            <th colspan="4" class="inst grp">法人買賣超 (億元)</th>
+            <th colspan="2" class="mg grp">融資 (億元)</th>
+            <th colspan="2" class="mg grp">融券 (萬張)</th>
+          </tr>
+          <tr>
+            <th class="inst">外資</th><th class="inst">投信</th><th class="inst">自營</th><th class="inst">合計</th>
+            <th class="mg">餘額</th><th class="mg">增減</th>
+            <th class="mg">餘額</th><th class="mg">增減</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="tbl-foot">
+      <span id="rowInfo"></span>
+      <button id="moreBtn" class="btn-ghost" hidden>顯示更多</button>
+    </div>
+  </section>
+
+  <p class="note">
+    資料來源：臺灣證券交易所、證券櫃檯買賣中心（初始歷史由 FinMind 匯入），每個交易日晚間自動更新。
+    <span id="updInfo"></span><br>
+    本網站資訊僅供參考，不構成任何投資建議；投資有風險，請自行判斷並承擔風險。
+  </p>
+</main>
+
+<footer class="foot"><div class="wrap">© 2026 Quant-Lab｜數據驅動投資</div></footer>
+
+<script src="assets/lightweight-charts.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
