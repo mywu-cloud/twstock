@@ -1,4 +1,4 @@
-/* Quant-Lab 大盤 K 線 + 籌碼資料表 */
+/* 台股 大盤 K 線 + 籌碼資料表 */
 (() => {
   'use strict';
   const LWC = window.LightweightCharts;
@@ -379,7 +379,7 @@
     $('#qInst').textContent = fmtAuto(nz(b.inst) ? b.inst / 100 : null); $('#qInst').className = cls(b.inst);
     $('#qMg').textContent = fmtAuto(nz(b.mbChg) ? b.mbChg / 100 : null); $('#qMg').className = cls(b.mbChg);
     $('#updInfo').textContent = j.updated ? `最後更新：${j.updated}（台北時間）` : '';
-    document.title = `${j.name} ${fmt(b.c)}｜Quant-Lab`;
+    document.title = `${j.name} ${fmt(b.c)}｜台股`;
   }
 
   // ------------------------------------------------------------ flow
