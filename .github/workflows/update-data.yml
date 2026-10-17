@@ -3,9 +3,9 @@ name: 每日更新大盤資料
 on:
   schedule:
     # GitHub cron 為 UTC；台北 = UTC+8
-    - cron: "37 13 * * 1-5"   # 21:37 台北（融資融券約 21:00 公布）
-    - cron: "17 15 * * 1-5"   # 23:17 台北 補抓
-    - cron: "23 1 * * 6"      # 週六 09:23 台北 加大回補歷史籌碼
+    - cron: "37 9 * * 1-5"    # 表定 17:37 台北（GitHub 排程常延遲約 4 小時，提前 4h 補償）
+    - cron: "17 11 * * 1-5"   # 表定 19:17 台北 補抓
+    - cron: "23 21 * * 5"     # 表定週六 05:23 台北 加大回補歷史籌碼（UTC 週五）
   workflow_dispatch:
     inputs:
       bootstrap:
@@ -41,7 +41,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             BACKFILL="${{ inputs.backfill }}"; MAXMIN=320
             if [ "${{ inputs.bootstrap }}" = "true" ]; then EXTRA="--bootstrap"; fi
-          elif [ "${{ github.event.schedule }}" = "23 1 * * 6" ]; then
+          elif [ "${{ github.event.schedule }}" = "23 21 * * 5" ]; then
             BACKFILL=1500; MAXMIN=300
           fi
           python scripts/update.py --backfill "$BACKFILL" --max-minutes "$MAXMIN" $EXTRA
@@ -52,5 +52,5 @@ jobs:
           git add data/
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
           git commit -m "data: $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M') 大盤資料更新"
-          git pull --rebase --autostash || true
+          git pull --rebase -X theirs --autostash
           git push
