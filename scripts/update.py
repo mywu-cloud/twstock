@@ -265,7 +265,9 @@ def tpex_inst_day(st: Store, d: str) -> bool:
     t = _tpex_table(get_json("tpex", f"{TPEX}/insti/summary", {"type": "Daily", "date": date, "response": "json"}))
     if not t or not t.get("data"):
         return False
-    vals = {str(r[0]).strip().replace(" ", ""): num(r[3]) for r in t["data"]}
+    vals = {str(r[0]).strip().replace(" ", ""): num(r[3]) for r in t["data"] if len(r) > 3}
+    if not vals:   # 非交易日或欄位格式異動時略過
+        return False
     fi = next((v for k, v in vals.items() if k.startswith("外資及陸資(不含")), None)
     if fi is None:
         fi = vals.get("外資及陸資合計", vals.get("外資及陸資"))
